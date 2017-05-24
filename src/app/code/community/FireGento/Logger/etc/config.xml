@@ -166,6 +166,10 @@
                         <label>Airbrake</label>
                         <class>FireGento_Logger_Model_Airbrake</class>
                     </airbrake>
+                    <cloudwatch>
+                        <label>CloudWatch Logs</label>
+                        <class>FireGento_Logger_Model_Cloudwatch</class>
+                    </cloudwatch>
                 </writer_models>
             </core>
         </log>
@@ -277,6 +281,9 @@ confirmation]]></filter_request_data>
             <airbrake>
                 <timeout>60</timeout>
             </airbrake>
+            <cloudwatch>
+                <region>eu-west-1</region>
+            </cloudwatch>
         </logger>
     </default>
     <frontend>
