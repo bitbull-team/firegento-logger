@@ -20,7 +20,20 @@
  */
 require 'aws_php-sdk_v3' . DS . 'aws-autoloader.php';
 
+/**
+ * $mapping is defined inside the aws-autoloader.php file above.
+ * This thing is needed because the autoloader registered inside the file
+ * is added at the end of autoload stack, so we need to register it passing the
+ * $prepend param with true
+*/
+spl_autoload_register(function ($class) use ($mapping) {
+    if (isset($mapping[$class])) {
+        require $mapping[$class];
+    }
+}, true, true);
+
 use Aws\CloudWatchLogs\CloudWatchLogsClient;
+use Aws\CloudWatchLogs\Exception\CloudWatchLogsException;
 
 /**
  * Model for CloudWatch Log logging
@@ -31,11 +44,6 @@ use Aws\CloudWatchLogs\CloudWatchLogsClient;
  */
 class FireGento_Logger_Model_Cloudwatch extends Zend_Log_Writer_Abstract
 {
-    /**
-     * @var int The timeout to apply when sending data to CloudWatch, in seconds.
-     */
-    protected $_timeout = 5;
-
     /**
      * @var array Contains configuration options.
      */
@@ -99,7 +107,7 @@ class FireGento_Logger_Model_Cloudwatch extends Zend_Log_Writer_Abstract
         $fields['TimeElapsed'] = $event->getTimeElapsed();
         $fields['Host'] = php_uname('n');
         $fields['TimeStamp'] = date(DATE_ISO8601, strtotime($event->getTimestamp()));
-        $fields['Facility'] = $this->_options['AppName'] . $this->_options['FileName'];
+        $fields['Facility'] = $this->_options['FileName'];
         $fields['Message'] = $event->getMessage();
 
         if ($event->getBacktrace()) {
@@ -124,7 +132,7 @@ class FireGento_Logger_Model_Cloudwatch extends Zend_Log_Writer_Abstract
      */
     protected function PublishMessage($message)
     {
-        /*$options = [
+        $options = [
             'region'  => $this->_options['Region'],
             'version' => 'latest',
             'credentials' => [
@@ -140,21 +148,28 @@ class FireGento_Logger_Model_Cloudwatch extends Zend_Log_Writer_Abstract
         $logStreamName = $this->_options['FileName'];
 
         try {
-            $result = $client->putLogEvents([
+
+            $logStream = $client->describeLogStreams(array(
+                'logGroupName' => $logGroupName,
+                'logStreamNamePrefix' => $logStreamName,
+            ));
+
+            $result = $client->putLogEvents(array(
                 'logGroupName' => $logGroupName,
                 'logStreamName' => $logStreamName,
-                'logEvents' => [
-                    [
+                'logEvents' => array(
+                    array(
                         'message' => $message,
                         'timestamp' => round(microtime(true) * 1000),
-                    ]
-                ]
-            ]);
-        } catch (\Aws\CloudWatchLogs\Exception\CloudWatchLogsException $e) {
+                    )
+                )
+            ));
+        } catch (CloudWatchLogsException $e) {
+
             throw new Zend_Log_Exception('Error occurred posting log message to CloudWatch.'
                 . "\n" . 'Error code: ' . $e->getAwsErrorCode()
                 . "\n" . 'Message: ' . $e->getMessage());
-        }*/
+        }
 
         return true;
     }
